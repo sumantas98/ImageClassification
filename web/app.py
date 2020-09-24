@@ -15,11 +15,8 @@ client = MongoClient("mongodb://db:27017")
 db = client.IRG
 users = db["Users"]
 
-def UserExist(username):
-    if users.find({"Username":username}).count() == 0:
-        return False
-    else:
-        return True
+
+
 
 class Register(Resource):
     def post(self):
@@ -52,37 +49,6 @@ class Register(Resource):
         }
         return jsonify(retJson)
 
-def verifyPw(username, password):
-    if not UserExist(username):
-        return False
-
-    hashed_pw = users.find({
-        "Username":username
-    })[0]["Password"]
-
-    if bcrypt.hashpw(password.encode('utf8'), hashed_pw) == hashed_pw:
-        return True
-    else:
-        return False
-
-def generateReturnDictionary(status, msg):
-    retJson = {
-        "status": status,
-        "message": msg
-    }
-    return retJson
-
-def verifyCredentials(username, password):
-    if not UserExist(username):
-        return generateReturnDictionary(301, "Invalid Username"), True
-
-    correct_pw = verifyPw(username, password)
-
-    if not correct_pw:
-        return generateReturnDictionary(302, "Incorrect Password"), True
-
-    return None, False
-
 
 class Classify(Resource):
     def post(self):
@@ -107,12 +73,13 @@ class Classify(Resource):
         retJson = {}
         with open('temp.jpg', 'wb') as f:
             f.write(r.content)
+            
             proc = subprocess.Popen('python classify_image.py --model_dir=. --image_file=./temp.jpg', stdout=subprocess.PIPE, stderr=subprocess.STDOUT, shell=True)
             ret = proc.communicate()[0]
             proc.wait()
             with open("text.txt") as f:
+            
                 retJson = json.load(f)
-
 
         users.update({
             "Username": username
@@ -123,6 +90,8 @@ class Classify(Resource):
         })
 
         return retJson
+
+
 
 
 class Refill(Resource):
@@ -148,6 +117,52 @@ class Refill(Resource):
             }
         })
         return jsonify(generateReturnDictionary(200, "Refilled"))
+
+
+
+def verifyPw(username, password):
+    if not UserExist(username):
+        return False
+
+    hashed_pw = users.find({
+        "Username":username
+    })[0]["Password"]
+
+    if bcrypt.hashpw(password.encode('utf8'), hashed_pw) == hashed_pw:
+        return True
+    else:
+        return False
+
+
+
+
+def generateReturnDictionary(status, msg):
+    retJson = {
+        "status": status,
+        "message": msg
+    }
+    return retJson
+
+
+
+def verifyCredentials(username, password):
+    if not UserExist(username):
+        return generateReturnDictionary(301, "Invalid Username"), True
+
+    correct_pw = verifyPw(username, password)
+
+    if not correct_pw:
+        return generateReturnDictionary(302, "Incorrect Password"), True
+
+    return None, False
+    
+
+def UserExist(username):
+    if users.find({"Username":username}).count() == 0:
+        return False
+    else:
+        return True
+
 
 
 api.add_resource(Register, '/register')
